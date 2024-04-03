@@ -1,9 +1,6 @@
 import gym
-from duelingDQN import DuelingDQNAgent
-
-# Define a function to evaluate agent performance
-def evaluate_agent(agent, env_name, episodes=100):
-    pass
+from duelingDQN import dqn, DuelingDQNAgent
+import matplotlib.pyplot as plt
 
 
 # Define main function
@@ -13,13 +10,27 @@ def main():
         env = gym.make(env_name)
 
         # Initialize agents
-        dueling_dqn_agent_type1 = DuelingDQNAgent(env)
+        dueling_dqn_agent_type1 = DuelingDQNAgent(env.observation_space.shape[0], env.action_space.n, seed=37)
         #monte_carlo_reinforce_agent = MonteCarloREINFORCEAgent(state_size, action_size)
 
         # Train and evaluate Dueling DQN agents
         print(f"\nTraining and evaluating Dueling DQN agents on {env_name} environment:")
         print("Type 1:")
-        # Train dueling DQN agent type 1
+        scores = dqn(dueling_dqn_agent_type1, env)
+        plt.plot(scores)
+        plt.show()
+
+        env = gym.make(env_name, render_mode="human")
+        state = env.reset()[0]
+        for t in range(1000):
+            action = dueling_dqn_agent_type1.act(state)
+            next_state, reward, done, _, _ = env.step(action)
+            dueling_dqn_agent_type1.step(state, action, reward, next_state, done)
+            state = next_state
+            env.render()
+            if done:
+                break
+
         print("Type 2:")
         # Train dueling DQN agent type 2
 

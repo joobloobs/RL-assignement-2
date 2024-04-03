@@ -5,7 +5,7 @@ import torch.nn.functional as F
 
 class DuelingQNetwork(nn.Module):
     """Implements a Dueling Q network (implements both value and advantage network with one shared layer)"""
-    def __init__(self, n_states, n_actions, seed, hidden1_size=128, hidden2_size=64):
+    def __init__(self, n_states, n_actions, seed, hidden1_size=128, hidden2_size=128):
         """Initialize parameters and build model.
         Params
         ======
@@ -17,23 +17,22 @@ class DuelingQNetwork(nn.Module):
         """
         super(DuelingQNetwork, self).__init__()
         self.seed = torch.manual_seed(seed)
-        self.layer_1 = nn.Linear(n_states, hidden1_size)
-
-        self.layer_val2 = nn.Linear(hidden1_size, hidden2_size)
-        self.layer_val3 = nn.Linear(hidden2_size, 1)
-
-        self.layer_adv2 = nn.Linear(hidden1_size, hidden2_size)
-        self.layer_adv3 = nn.Linear(hidden2_size, n_actions)
+        self.fc1 = nn.Linear(n_states, hidden1_size)
+        self.fc2 = nn.Linear(hidden1_size, hidden2_size)
+        self.advfc3 = nn.Linear(hidden2_size, hidden2_size)
+        self.advfc4 = nn.Linear(hidden2_size, n_actions)
+        self.valfc3 = nn.Linear(hidden2_size, hidden2_size)
+        self.valfc4 = nn.Linear(hidden2_size, 1)
 
     def forward(self, state):
-        """Build a network that maps state -> q values calculated thanks to value and advantage."""
-        x = F.relu(self.layer_1(state))
+        """Build a network that maps state -> action values."""
+        x = F.relu(self.fc1(state))
+        x = F.relu(self.fc2(x))
 
-        state_val = F.relu(self.layer_val2(x))
-        advantage = F.relu(self.layer_adv2(x))
+        adv = F.relu(self.advfc3(x))
+        adv = self.advfc4(adv)
 
-        state_val = self.layer_val3(state_val)
-        advantage = self.layer_adv3(advantage)
+        val = F.relu(self.valfc3(x))
+        val = self.valfc4(val)
 
-        q_values = state_val + advantage - advantage.mean()
-        return q_values
+        return val + adv - adv.mean(1).unsqueeze(1)
