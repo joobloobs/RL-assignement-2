@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 from vars import *
 from collections import namedtuple
 
-HyperEnv = namedtuple('HyperEnvs', ['name', 'n_episodes', 'max_t', 'batch_size', 'lr', 'update_every', 'gamma', 'tau', 'layer_size1', 'layer_size2'])
-ENVS = [HyperEnv('CartPole-v1', 1000, 1000, 128, 1e-4, 100, 0.99, 1, 128, 64), HyperEnv('Acrobot-v1', 200, 500, 256, 1e-3, 500, 0.99, 0.1, 128, 256)]
+
+ENVS = [HyperEnv('CartPole-v1', 1000, 1000, 128, 1e-4, 100, 0.99, 0.1, 128, 64), HyperEnv('Acrobot-v1', 200, 500, 256, 1e-3, 500, 0.99, 0.1, 128, 256)]
 # Define main function
 def main():
 
@@ -38,7 +38,7 @@ def main():
 """
         print("Type 2:")
         # Train dueling DQN agent type 2
-        scores = dqn(dueling_dqn_agent_type1, env, n_episodes=hyperEnv.n_episodes, max_t=hyperEnv.max_t)
+        scores = dqn(dueling_dqn_agent_type2, env, n_episodes=hyperEnv.n_episodes, max_t=hyperEnv.max_t)
         plt.plot(scores)
         plt.show()
 

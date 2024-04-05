@@ -1,7 +1,7 @@
 import torch
 from collections import namedtuple
 
-
+HyperEnv = namedtuple('HyperEnvs', ['name', 'n_episodes', 'max_t', 'batch_size', 'lr', 'update_every', 'gamma', 'tau', 'layer_size1', 'layer_size2'])
 
 BUFFER_SIZE = int(1e5)  # replay buffer size
 BATCH_SIZE = 64         # minibatch size
