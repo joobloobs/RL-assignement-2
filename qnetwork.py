@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-class DuelingQNetwork(nn.Module):
+class DuelingQNetworkMean(nn.Module):
     """Implements a Dueling Q network (implements both value and advantage network with one shared layer)"""
     def __init__(self, n_states, n_actions, seed, hidden1_size=128, hidden2_size=128):
         """Initialize parameters and build model.
@@ -15,7 +15,7 @@ class DuelingQNetwork(nn.Module):
             fc1_units (int): Number of nodes in first hidden layer
             fc2_units (int): Number of nodes in second hidden layer
         """
-        super(DuelingQNetwork, self).__init__()
+        super(DuelingQNetworkMean, self).__init__()
         self.seed = torch.manual_seed(seed)
         self.fc1 = nn.Linear(n_states, hidden1_size)
         self.fc2 = nn.Linear(hidden1_size, hidden2_size)
@@ -36,3 +36,18 @@ class DuelingQNetwork(nn.Module):
         val = self.valfc4(val)
 
         return val + adv - adv.mean(1).unsqueeze(1)
+
+
+class DuelingQNetworkMax(DuelingQNetworkMean):
+    def forward(self, state):
+        """Build a network that maps state -> action values."""
+        x = F.relu(self.fc1(state))
+        x = F.relu(self.fc2(x))
+
+        adv = F.relu(self.advfc3(x))
+        adv = self.advfc4(adv)
+
+        val = F.relu(self.valfc3(x))
+        val = self.valfc4(val)
+
+        return val + adv - adv.max(1)[0].unsqueeze(1)

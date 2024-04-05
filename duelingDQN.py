@@ -1,5 +1,5 @@
 from replayBuffer import ReplayBuffer
-from qnetwork import DuelingQNetwork
+from qnetwork import DuelingQNetworkMean, DuelingQNetworkMax
 from vars import *
 import torch
 import torch.nn.functional as F
@@ -8,7 +8,8 @@ import random
 import numpy as np
 from collections import deque
 
-def dqn(agent, env, n_episodes=100, max_t=500, eps_start=1.0, eps_end=0.01, eps_decay=0.995):
+
+def dqn(agent, env, n_episodes=100, max_t=500):
 
     scores_window = deque(maxlen=100)
     ''' last 100 scores for checking if the avg is more than 195 '''
@@ -47,20 +48,26 @@ def dqn(agent, env, n_episodes=100, max_t=500, eps_start=1.0, eps_end=0.01, eps_
 
 
 class DuelingDQNAgent:
-    def __init__(self, state_size, action_size, seed):
+    def __init__(self, state_size, action_size, seed, type: str, hyper_env: HyperEnv):
 
-        ''' Agent Environment Interaction '''
         self.state_size = state_size
         self.action_size = action_size
-        self.seed = random.seed(seed)
+        random.seed(seed)
+        self.hyper_env = hyper_env
 
-        ''' Q-Network '''
-        self.qnetwork_local = DuelingQNetwork(state_size, action_size, seed).to(device)
-        self.qnetwork_target = DuelingQNetwork(state_size, action_size, seed).to(device)
-        self.optimizer = optim.Adam(self.qnetwork_local.parameters(), lr=LR)
+        # Q targets and
+        if type == "mean":
+            self.q_network = DuelingQNetworkMean(state_size, action_size, seed, hyper_env.layer_size1, hyper_env.layer_size2).to(device)
+            self.target_network = DuelingQNetworkMean(state_size, action_size, seed, hyper_env.layer_size1, hyper_env.layer_size2).to(device)
+        elif type == "max":
+            self.q_network = DuelingQNetworkMax(state_size, action_size, seed, hyper_env.layer_size1, hyper_env.layer_size2).to(device)
+            self.target_network = DuelingQNetworkMax(state_size, action_size, seed, hyper_env.layer_size1, hyper_env.layer_size2).to(device)
+        else:
+            raise Exception('The type is wrong')
+        self.optimizer = optim.Adam(self.q_network.parameters(), lr=LR)
 
         ''' Replay memory '''
-        self.memory = ReplayBuffer(action_size, BUFFER_SIZE, BATCH_SIZE, seed)
+        self.memory = ReplayBuffer(action_size, BUFFER_SIZE, self.hyper_env.batch_size, seed)
 
         ''' Initialize time step (for updating every UPDATE_EVERY steps)           -Needed for Q Targets '''
         self.t_step = 0
@@ -71,26 +78,26 @@ class DuelingDQNAgent:
         self.memory.add(state, action, reward, next_state, done)
 
         ''' If enough samples are available in memory, get random subset and learn '''
-        if len(self.memory) >= BATCH_SIZE:
+        if len(self.memory) >= self.hyper_env.batch_size:
             experiences = self.memory.sample()
-            self.learn(experiences, GAMMA)
+            self.learn(experiences, self.hyper_env.gamma)
 
         """ +Q TARGETS PRESENT """
         ''' Updating the Network every 'UPDATE_EVERY' steps taken '''
-        self.t_step = (self.t_step + 1) % UPDATE_EVERY
+        self.t_step = (self.t_step + 1) % self.hyper_env.update_every
         if self.t_step == 0:
 
-            self.qnetwork_target.load_state_dict(self.qnetwork_local.state_dict())
+            self.target_network.load_state_dict(self.q_network.state_dict())
 
     def act(self, state):
 
         state = torch.from_numpy(state).float().unsqueeze(0).to(device)
-        self.qnetwork_local.eval()
+        self.q_network.eval()
         with torch.no_grad():
-            action_values = self.qnetwork_local(state)
-        self.qnetwork_local.train()
+            action_values = self.q_network(state)
+        self.q_network.train()
 
-        tau = TAU
+        tau = self.hyper_env.tau
 
         ''' Epsilon-greedy action selection (Already Present) '''
         action_values_table = action_values.cpu().data.numpy()[0]
@@ -103,13 +110,13 @@ class DuelingDQNAgent:
         states, actions, rewards, next_states, dones = experiences
 
         ''' Get max predicted Q values (for next states) from target model'''
-        q_targets_next = self.qnetwork_local(next_states).detach().max(1)[0].unsqueeze(1)
+        q_targets_next = self.q_network(next_states).detach().max(1)[0].unsqueeze(1)
 
         ''' Compute Q targets for current states '''
         q_targets = rewards + (gamma * q_targets_next * (1 - dones))
 
         ''' Get expected Q values from local model '''
-        q_expected = self.qnetwork_local(states).gather(1, actions)
+        q_expected = self.q_network(states).gather(1, actions)
 
         ''' Compute loss '''
         loss = F.mse_loss(q_expected, q_targets)
@@ -120,7 +127,7 @@ class DuelingDQNAgent:
 
         ''' Gradiant Clipping '''
         """ +T TRUNCATION PRESENT """
-        for param in self.qnetwork_local.parameters():
+        for param in self.q_network.parameters():
             param.grad.data.clamp_(-1, 1)
 
         self.optimizer.step()
