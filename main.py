@@ -24,7 +24,6 @@ def main():
         plt.plot(scores)
         plt.show()
 
-        """
         env = gym.make(hyperEnv.name, render_mode="human")
         state = env.reset()[0]
         for t in range(hyperEnv.max_t):
@@ -35,7 +34,6 @@ def main():
             env.render()
             if done:
                 break
-"""
         print("Type 2:")
         # Train dueling DQN agent type 2
         scores = dqn(dueling_dqn_agent_type2, env, n_episodes=hyperEnv.n_episodes, max_t=hyperEnv.max_t)

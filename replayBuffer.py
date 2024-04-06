@@ -17,11 +17,10 @@ class ReplayBuffer:
             batch_size (int): size of each training batch
             seed (int): random seed
         """
-        self.action_size = action_size
         self.memory = deque(maxlen=buffer_size)
         self.batch_size = batch_size
         self.experience = namedtuple("Experience", field_names=["state", "action", "reward", "next_state", "done"])
-        self.seed = random.seed(seed)
+        random.seed(seed)
 
     def add(self, state, action, reward, next_state, done):
         """Add a new experience to memory."""
