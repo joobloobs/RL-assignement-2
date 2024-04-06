@@ -1,5 +1,5 @@
 from replayBuffer import ReplayBuffer
-from qnetwork import DuelingQNetwork
+from networks import DuelingQNetwork
 from vars import *
 import torch
 import torch.nn.functional as F
@@ -38,24 +38,22 @@ def dqn(agent, env, n_episodes=100, max_t=500):
 
 
 class DuelingDQNAgent:
-    def __init__(self, state_size, action_size, seed, type: str, hyper_env: HyperEnv):
+    def __init__(self, state_size, action_size, type: str, hyper_env: HyperEnv):
 
-        self.state_size = state_size
-        self.action_size = action_size
-        random.seed(seed)
+        random.seed(SEED)
         self.hyper_env = hyper_env
 
         # Initialize Q network and Q target network depending on the type of aggregation specified in hyper_env
-        self.q_network = DuelingQNetwork(state_size, action_size, seed, hyper_env.layer_size1,
+        self.q_network = DuelingQNetwork(state_size, action_size, hyper_env.layer_size1,
                                          hyper_env.layer_size2, type).to(device)
 
-        self.target_network = DuelingQNetwork(state_size, action_size, seed, hyper_env.layer_size1,
+        self.target_network = DuelingQNetwork(state_size, action_size, hyper_env.layer_size1,
                                               hyper_env.layer_size2, type).to(device)
 
         self.optimizer = optim.Adam(self.q_network.parameters(), lr=LR)
 
         # replay buffer
-        self.memory = ReplayBuffer(action_size, BUFFER_SIZE, self.hyper_env.batch_size, seed)
+        self.memory = ReplayBuffer(BUFFER_SIZE, self.hyper_env.batch_size)
 
         # timestep used for updating Q target only every update_every defined in self.hyper_env.update_every
         self.t_step = 0
@@ -68,7 +66,7 @@ class DuelingDQNAgent:
         # update the q_network when the memory has enough data
         if len(self.memory) >= self.hyper_env.batch_size:
             experiences = self.memory.sample()
-            self.update(experiences, self.hyper_env.gamma)
+            self.update(experiences)
 
         # update target network every update_every steps
         self.t_step = (self.t_step + 1) % self.hyper_env.update_every
@@ -94,7 +92,7 @@ class DuelingDQNAgent:
 
         return int(np.random.choice(len(action_values_table), p=probabilities))
 
-    def update(self, experiences, gamma):
+    def update(self, experiences):
         states, actions, rewards, next_states, dones = experiences
 
         # Choose best next action from q_network and evaluate from target network (maximization bias)
@@ -102,7 +100,7 @@ class DuelingDQNAgent:
         next_targets = self.target_network(next_states).gather(1, actions_next)
 
         # Compute the targets of states
-        q_targets = rewards + (gamma * next_targets * (1 - dones))
+        q_targets = rewards + (self.hyper_env.gamma * next_targets * (1 - dones))
 
         # Compute the current q values
         q_expected = self.q_network(states).gather(1, actions)

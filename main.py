@@ -3,9 +3,10 @@ from duelingDQN import dqn, DuelingDQNAgent
 import matplotlib.pyplot as plt
 from vars import *
 from collections import namedtuple
+from mcReinforce import mc_reinforce, REINFORCEAgent
 
 
-ENVS = [HyperEnv('CartPole-v1', 1000, 1000, 128, 1e-4, 100, 0.99, 0.1, 128, 64), HyperEnv('Acrobot-v1', 200, 500, 256, 1e-3, 500, 0.99, 0.1, 128, 256)]
+ENVS = [HyperEnv('CartPole-v1', 1000, 1000, 128, 1e-2, 100, 0.99, 0.1, 128, 64), HyperEnv('Acrobot-v1', 200, 500, 256, 1e-2, 500, 0.99, 0.1, 128, 256)]
 # Define main function
 def main():
 
@@ -13,14 +14,14 @@ def main():
         env = gym.make(hyperEnv.name)
 
         # Initialize agents
-        dueling_dqn_agent_type1 = DuelingDQNAgent(env.observation_space.shape[0], env.action_space.n, 37, "mean", hyperEnv)
-        dueling_dqn_agent_type2 = DuelingDQNAgent(env.observation_space.shape[0], env.action_space.n, 37, "max", hyperEnv)
-        #monte_carlo_reinforce_agent = MonteCarloREINFORCEAgent(state_size, action_size)
+        dueling_dqn_agent_type1 = DuelingDQNAgent(env.observation_space.shape[0], env.action_space.n, "mean", hyperEnv)
+        dueling_dqn_agent_type2 = DuelingDQNAgent(env.observation_space.shape[0], env.action_space.n, "max", hyperEnv)
+        monte_carlo_reinforce_agent = REINFORCEAgent(env.observation_space.shape[0], env.action_space.n, hyperEnv.layer_size1, hyperEnv.lr, hyperEnv.gamma, True)
 
         # Train and evaluate Dueling DQN agents
         print(f"\nTraining and evaluating Dueling DQN agents on {hyperEnv.name} environment:")
         print("Type 1:")
-        scores = dqn(dueling_dqn_agent_type1, env, n_episodes=hyperEnv.n_episodes, max_t=hyperEnv.max_t)
+        scores = mc_reinforce(monte_carlo_reinforce_agent, env, hyperEnv.n_episodes, hyperEnv.max_t)
         plt.plot(scores)
         plt.show()
 

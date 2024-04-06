@@ -1,4 +1,4 @@
-from vars import device
+from vars import *
 import random
 import torch
 import numpy as np
@@ -7,12 +7,11 @@ from collections import deque, namedtuple
 class ReplayBuffer:
     """Fixed-size buffer to store experience tuples."""
 
-    def __init__(self, action_size, buffer_size, batch_size, seed):
+    def __init__(self, buffer_size, batch_size):
         """Initialize a ReplayBuffer object.
 
         Params
         ======
-            action_size (int): dimension of each action
             buffer_size (int): maximum size of buffer
             batch_size (int): size of each training batch
             seed (int): random seed
@@ -20,7 +19,7 @@ class ReplayBuffer:
         self.memory = deque(maxlen=buffer_size)
         self.batch_size = batch_size
         self.experience = namedtuple("Experience", field_names=["state", "action", "reward", "next_state", "done"])
-        random.seed(seed)
+        random.seed(SEED)
 
     def add(self, state, action, reward, next_state, done):
         """Add a new experience to memory."""
